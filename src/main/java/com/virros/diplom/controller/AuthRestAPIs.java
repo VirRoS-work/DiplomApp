@@ -2,10 +2,13 @@ package com.virros.diplom.controller;
 
 import com.virros.diplom.message.request.LoginForm;
 import com.virros.diplom.message.request.SignUpForm;
+import com.virros.diplom.message.request.SignUpFormCompany;
 import com.virros.diplom.message.response.JwtResponse;
+import com.virros.diplom.model.Employer;
 import com.virros.diplom.model.Role;
 import com.virros.diplom.model.RoleName;
 import com.virros.diplom.model.User;
+import com.virros.diplom.repository.EmployerRepository;
 import com.virros.diplom.repository.RoleRepository;
 import com.virros.diplom.repository.UserRepository;
 import com.virros.diplom.security.jwt.JwtProvider;
@@ -34,6 +37,9 @@ public class AuthRestAPIs {
 
     @Autowired
     UserRepository userRepository;
+
+    @Autowired
+    EmployerRepository employerRepository;
 
     @Autowired
     RoleRepository roleRepository;
@@ -70,18 +76,29 @@ public class AuthRestAPIs {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<String> registerUser(@Valid @RequestBody SignUpForm signUpRequest) {
-        if(userRepository.existsByUsername(signUpRequest.getUsername())) {
+    public ResponseEntity<String> registerCompany(@Valid @RequestBody SignUpFormCompany signUpRequest) {
+        if(userRepository.existsByUsername(signUpRequest.getSignUpForm().getUsername())) {
             return new ResponseEntity<String>("Fail -> Username is already taken!",
                     HttpStatus.BAD_REQUEST);
         }
-
-        if(userRepository.existsByEmail(signUpRequest.getEmail())) {
+        if(userRepository.existsByEmail(signUpRequest.getSignUpForm().getEmail())) {
             return new ResponseEntity<String>("Fail -> Email is already in use!",
                     HttpStatus.BAD_REQUEST);
         }
 
-        // Creating user's account
+        User user = registerUser(signUpRequest.getSignUpForm());
+
+        //register company
+
+        Employer employer = new Employer(signUpRequest.getName(), signUpRequest.getType(), signUpRequest.getCount(),
+                signUpRequest.getAddress(), signUpRequest.getSite(), signUpRequest.getDescription(), user, null);
+
+        employerRepository.save(employer);
+
+        return ResponseEntity.ok().body("User registered successfully!");
+    }
+
+    private User registerUser(SignUpForm signUpRequest) {
         User user = new User(signUpRequest.getUsername(),
                 signUpRequest.getEmail(), encoder.encode(signUpRequest.getPassword()));
 
@@ -89,29 +106,28 @@ public class AuthRestAPIs {
         Set<Role> roles = new HashSet<>();
 
         strRoles.forEach(role -> {
-        	switch(role) {
-	    		case "admin":
-	    			Role adminRole = roleRepository.findByName(RoleName.ROLE_ADMIN)
-	                .orElseThrow(() -> new RuntimeException("Fail! -> Cause: User Role not find."));
-	    			roles.add(adminRole);
-	    			
-	    			break;
-	    		case "company":
-	            	Role companyRole = roleRepository.findByName(RoleName.ROLE_COMPANY)
-	                .orElseThrow(() -> new RuntimeException("Fail! -> Cause: User Role not find."));
-	            	roles.add(companyRole);
-	            	
-	    			break;
-	    		default:
-	        		Role userRole = roleRepository.findByName(RoleName.ROLE_USER)
-	                .orElseThrow(() -> new RuntimeException("Fail! -> Cause: User Role not find."));
-	        		roles.add(userRole);        			
-        	}
-        });
-        
-        user.setRoles(roles);
-        userRepository.save(user);
+            switch(role) {
+                case "admin":
+                    Role adminRole = roleRepository.findByName(RoleName.ROLE_ADMIN)
+                            .orElseThrow(() -> new RuntimeException("Fail! -> Cause: User Role not find."));
+                    roles.add(adminRole);
 
-        return ResponseEntity.ok().body("User registered successfully!");
+                    break;
+                case "company":
+                    Role companyRole = roleRepository.findByName(RoleName.ROLE_COMPANY)
+                            .orElseThrow(() -> new RuntimeException("Fail! -> Cause: User Role not find."));
+                    roles.add(companyRole);
+
+                    break;
+                default:
+                    Role userRole = roleRepository.findByName(RoleName.ROLE_USER)
+                            .orElseThrow(() -> new RuntimeException("Fail! -> Cause: User Role not find."));
+                    roles.add(userRole);
+            }
+        });
+
+        user.setRoles(roles);
+        return userRepository.save(user);
     }
+
 }
