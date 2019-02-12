@@ -43,11 +43,14 @@ public class Employer {
     @OneToMany(mappedBy = "employer", fetch = FetchType.EAGER, cascade = CascadeType.REMOVE)
     private Set<Office> offices;
 
+    @OneToMany(mappedBy = "employer", fetch = FetchType.EAGER, cascade = CascadeType.REMOVE)
+    private Set<Vacancy> vacancies;
+
     public Employer() {
     }
 
     public Employer(String name, String type, String number_of_person, String address, String site, String description,
-                    User user, Set<ContactPerson> contacts, Set<Office> offices) {
+                    User user, Set<ContactPerson> contacts, Set<Office> offices, Set<Vacancy> vacancies) {
         this.name = name;
         this.type = type;
         this.number_of_person = number_of_person;
@@ -57,6 +60,7 @@ public class Employer {
         this.user = user;
         this.contacts = contacts;
         this.offices = offices;
+        this.vacancies = vacancies;
     }
 
     public Long getId() {
@@ -138,4 +142,13 @@ public class Employer {
     public void setOffices(Set<Office> offices) {
         this.offices = offices;
     }
+
+    public Set<Vacancy> getVacancies() {
+        return vacancies;
+    }
+
+    public void setVacancies(Set<Vacancy> vacancies) {
+        this.vacancies = vacancies;
+    }
+
 }

@@ -12,11 +12,17 @@ public class Constants {
 
     private final List<String> countEmployeesConpany = Arrays.asList("Менее 50", "От 50 до 250", "Более 250");
 
+    private final List<String> typesEmployment = Arrays.asList("Полный", "Неполный");
+
     public List<String> getTypesConpany() {
         return typesConpany;
     }
 
     public List<String> getCountEmployeesConpany() {
         return countEmployeesConpany;
+    }
+
+    public List<String> getTypesEmployment() {
+        return typesEmployment;
     }
 }

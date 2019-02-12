@@ -91,7 +91,7 @@ public class AuthRestAPIs {
         //register company
 
         Employer employer = new Employer(signUpRequest.getName(), signUpRequest.getType(), signUpRequest.getCount(),
-                signUpRequest.getAddress(), signUpRequest.getSite(), signUpRequest.getDescription(), user, null);
+                signUpRequest.getAddress(), signUpRequest.getSite(), signUpRequest.getDescription(), user, null, null, null);
 
         employerRepository.save(employer);
 

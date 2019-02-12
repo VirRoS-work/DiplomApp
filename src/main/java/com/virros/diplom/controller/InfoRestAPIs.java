@@ -1,8 +1,8 @@
 package com.virros.diplom.controller;
 
-import com.google.gson.Gson;
 import com.virros.diplom.model.Constants;
 import com.virros.diplom.repository.ContactTypeRepository;
+import com.virros.diplom.repository.FieldOfActivityRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -22,7 +22,8 @@ public class InfoRestAPIs {
     ContactTypeRepository contactTypeRepository;
 
     @Autowired
-    Gson gson;
+    FieldOfActivityRepository fieldOfActivityRepository;
+
 
     @GetMapping("/companytypes")
     public ResponseEntity<?> getInfoAboutTypesCompany(){
@@ -37,11 +38,19 @@ public class InfoRestAPIs {
     }
 
     @GetMapping("/contacttypes")
-    public ResponseEntity<?> detInfoAboutContactTypes() {
+    public ResponseEntity<?> getInfoAboutContactTypes() {
 
         return ResponseEntity.ok().body(contactTypeRepository.findAll());
     }
 
+    @GetMapping("/fieldsofactivities")
+    public ResponseEntity<?> getInfoAboutFieldsOfActivities() {
+        return ResponseEntity.ok().body(fieldOfActivityRepository.findAll());
+    }
 
+    @GetMapping("/employmenttypes")
+    public ResponseEntity<?> getInfoAboutEmploymentTypes() {
+        return ResponseEntity.ok().body(constants.getTypesEmployment());
+    }
 
 }
