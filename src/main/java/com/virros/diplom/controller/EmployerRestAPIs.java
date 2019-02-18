@@ -2,7 +2,6 @@ package com.virros.diplom.controller;
 
 import com.virros.diplom.model.*;
 import com.virros.diplom.repository.*;
-import com.virros.diplom.security.jwt.JwtAuthEntryPoint;
 import com.virros.diplom.security.jwt.JwtProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,8 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
-
-import javax.validation.Valid;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController

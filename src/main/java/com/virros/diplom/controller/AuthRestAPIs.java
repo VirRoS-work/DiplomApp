@@ -2,16 +2,17 @@ package com.virros.diplom.controller;
 
 import com.virros.diplom.message.request.LoginForm;
 import com.virros.diplom.message.request.SignUpForm;
+import com.virros.diplom.message.request.SignUpFormApplicant;
 import com.virros.diplom.message.request.SignUpFormCompany;
 import com.virros.diplom.message.response.JwtResponse;
-import com.virros.diplom.model.Employer;
-import com.virros.diplom.model.Role;
-import com.virros.diplom.model.RoleName;
-import com.virros.diplom.model.User;
+import com.virros.diplom.model.*;
+import com.virros.diplom.repository.ApplicantRepository;
 import com.virros.diplom.repository.EmployerRepository;
 import com.virros.diplom.repository.RoleRepository;
 import com.virros.diplom.repository.UserRepository;
 import com.virros.diplom.security.jwt.JwtProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +33,8 @@ import java.util.Set;
 @RequestMapping("/api/auth")
 public class AuthRestAPIs {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuthRestAPIs.class);
+
     @Autowired
     AuthenticationManager authenticationManager;
 
@@ -40,6 +43,9 @@ public class AuthRestAPIs {
 
     @Autowired
     EmployerRepository employerRepository;
+
+    @Autowired
+    ApplicantRepository applicantRepository;
 
     @Autowired
     RoleRepository roleRepository;
@@ -75,8 +81,11 @@ public class AuthRestAPIs {
         return ResponseEntity.ok(new JwtResponse(jwt, username, roles));
     }
 
-    @PostMapping("/signup")
+    @PostMapping("/signupcompany")
     public ResponseEntity<String> registerCompany(@Valid @RequestBody SignUpFormCompany signUpRequest) {
+
+        logger.info(signUpRequest.toString());
+
         if(userRepository.existsByUsername(signUpRequest.getSignUpForm().getUsername())) {
             return new ResponseEntity<String>("Fail -> Username is already taken!",
                     HttpStatus.BAD_REQUEST);
@@ -95,7 +104,35 @@ public class AuthRestAPIs {
 
         employerRepository.save(employer);
 
-        return ResponseEntity.ok().body("User registered successfully!");
+        return ResponseEntity.ok().body("Company registered successfully!");
+    }
+
+    @PostMapping("/signupapplicant")
+    public ResponseEntity<?> registerApplicant(@Valid @RequestBody SignUpFormApplicant signUpRequest) {
+
+        logger.info(signUpRequest.toString());
+
+        if(userRepository.existsByUsername(signUpRequest.getSignUpForm().getUsername())) {
+            return new ResponseEntity<String>("Fail -> Username is already taken!",
+                    HttpStatus.BAD_REQUEST);
+        }
+        if(userRepository.existsByEmail(signUpRequest.getSignUpForm().getEmail())) {
+            return new ResponseEntity<String>("Fail -> Email is already in use!",
+                    HttpStatus.BAD_REQUEST);
+        }
+
+        User user = registerUser(signUpRequest.getSignUpForm());
+
+        //register applicant
+
+        Applicant applicant = new Applicant("Закрытый", signUpRequest.getFirst_name(), signUpRequest.getLast_name(),
+                signUpRequest.getFather_name(), signUpRequest.getSex(), signUpRequest.getDate_of_birth(), user);
+
+        logger.info(applicant.toString());
+
+        applicantRepository.save(applicant);
+
+        return ResponseEntity.ok().body("Applicant register successfully!");
     }
 
     private User registerUser(SignUpForm signUpRequest) {

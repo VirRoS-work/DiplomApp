@@ -78,4 +78,17 @@ public class SignUpFormCompany {
     public void setDescription(String description) {
         this.description = description;
     }
+
+    @Override
+    public String toString() {
+        return "SignUpFormCompany{" +
+                "signUpForm=" + signUpForm +
+                ", name='" + name + '\'' +
+                ", type='" + type + '\'' +
+                ", count='" + count + '\'' +
+                ", address='" + address + '\'' +
+                ", site='" + site + '\'' +
+                ", description='" + description + '\'' +
+                '}';
+    }
 }

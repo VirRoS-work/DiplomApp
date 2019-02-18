@@ -2,6 +2,7 @@ package com.virros.diplom.model;
 
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -14,6 +15,8 @@ public class Constants {
 
     private final List<String> typesEmployment = Arrays.asList("Полный", "Неполный");
 
+    private final List<String> formTraining = Arrays.asList("Очная", "Очно-Заочная", "Заочная");
+
     public List<String> getTypesConpany() {
         return typesConpany;
     }
@@ -24,5 +27,9 @@ public class Constants {
 
     public List<String> getTypesEmployment() {
         return typesEmployment;
+    }
+
+    public List<String> getFormTraining() {
+        return formTraining;
     }
 }

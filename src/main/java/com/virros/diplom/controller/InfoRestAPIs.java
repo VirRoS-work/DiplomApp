@@ -3,6 +3,8 @@ package com.virros.diplom.controller;
 import com.virros.diplom.model.Constants;
 import com.virros.diplom.repository.ContactTypeRepository;
 import com.virros.diplom.repository.FieldOfActivityRepository;
+import com.virros.diplom.repository.LanguageRepository;
+import com.virros.diplom.repository.SportRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -24,6 +26,11 @@ public class InfoRestAPIs {
     @Autowired
     FieldOfActivityRepository fieldOfActivityRepository;
 
+    @Autowired
+    LanguageRepository languageRepository;
+
+    @Autowired
+    SportRepository sportRepository;
 
     @GetMapping("/companytypes")
     public ResponseEntity<?> getInfoAboutTypesCompany(){
@@ -51,6 +58,21 @@ public class InfoRestAPIs {
     @GetMapping("/employmenttypes")
     public ResponseEntity<?> getInfoAboutEmploymentTypes() {
         return ResponseEntity.ok().body(constants.getTypesEmployment());
+    }
+
+    @GetMapping("/languages")
+    public ResponseEntity<?> getInfoAboutLanguages() {
+        return ResponseEntity.ok().body(languageRepository.findAll());
+    }
+
+    @GetMapping("/sports")
+    public ResponseEntity<?> getInfoAboutSports() {
+        return ResponseEntity.ok().body(sportRepository.findAll());
+    }
+
+    @GetMapping("/formstraining")
+    public ResponseEntity<?> getInfoAboutFormsTraining() {
+        return ResponseEntity.ok().body(constants.getFormTraining());
     }
 
 }
