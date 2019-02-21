@@ -56,6 +56,8 @@ public class AuthRestAPIs {
     @Autowired
     JwtProvider jwtProvider;
 
+    @Autowired
+    MyMailSender myMailSender;
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginForm loginRequest) {
@@ -76,9 +78,10 @@ public class AuthRestAPIs {
                         new UsernameNotFoundException("User Not Found with -> username or email : " + username)
                 );
         Set<String> roles = new HashSet<>();
-        for (Role role : user.getRoles()){
+        for (Role role : user.getRoles()) {
             roles.add(role.getName().name());
         }
+
         return ResponseEntity.ok(new JwtResponse(jwt, username, roles));
     }
 
@@ -87,11 +90,11 @@ public class AuthRestAPIs {
 
         logger.info(signUpRequest.toString());
 
-        if(userRepository.existsByUsername(signUpRequest.getSignUpForm().getUsername())) {
+        if (userRepository.existsByUsername(signUpRequest.getSignUpForm().getUsername())) {
             return new ResponseEntity<String>("Fail -> Username is already taken!",
                     HttpStatus.BAD_REQUEST);
         }
-        if(userRepository.existsByEmail(signUpRequest.getSignUpForm().getEmail())) {
+        if (userRepository.existsByEmail(signUpRequest.getSignUpForm().getEmail())) {
             return new ResponseEntity<String>("Fail -> Email is already in use!",
                     HttpStatus.BAD_REQUEST);
         }
@@ -103,7 +106,9 @@ public class AuthRestAPIs {
         Employer employer = new Employer(signUpRequest.getName(), signUpRequest.getType(), signUpRequest.getCount(),
                 signUpRequest.getAddress(), signUpRequest.getSite(), signUpRequest.getDescription(), user, null, null, null);
 
-        employerRepository.save(employer);
+        Employer res = employerRepository.save(employer);
+
+        myMailSender.sendMailRegistrationNotification(res);
 
         return ResponseEntity.ok().body("Company registered successfully!");
     }
@@ -113,11 +118,11 @@ public class AuthRestAPIs {
 
         logger.info(signUpRequest.toString());
 
-        if(userRepository.existsByUsername(signUpRequest.getSignUpForm().getUsername())) {
+        if (userRepository.existsByUsername(signUpRequest.getSignUpForm().getUsername())) {
             return new ResponseEntity<String>("Fail -> Username is already taken!",
                     HttpStatus.BAD_REQUEST);
         }
-        if(userRepository.existsByEmail(signUpRequest.getSignUpForm().getEmail())) {
+        if (userRepository.existsByEmail(signUpRequest.getSignUpForm().getEmail())) {
             return new ResponseEntity<String>("Fail -> Email is already in use!",
                     HttpStatus.BAD_REQUEST);
         }
@@ -133,6 +138,8 @@ public class AuthRestAPIs {
 
         applicantInfoRepository.save(new ApplicantInfo(res));
 
+        myMailSender.sendMailRegistrationNotification(res);
+
         return ResponseEntity.ok().body("Applicant register successfully!");
     }
 
@@ -144,7 +151,7 @@ public class AuthRestAPIs {
         Set<Role> roles = new HashSet<>();
 
         strRoles.forEach(role -> {
-            switch(role) {
+            switch (role) {
                 case "admin":
                     Role adminRole = roleRepository.findByName(RoleName.ROLE_ADMIN)
                             .orElseThrow(() -> new RuntimeException("Fail! -> Cause: User Role not find."));
@@ -167,5 +174,6 @@ public class AuthRestAPIs {
         user.setRoles(roles);
         return userRepository.save(user);
     }
+
 
 }
