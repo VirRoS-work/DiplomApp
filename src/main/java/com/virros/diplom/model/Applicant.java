@@ -35,6 +35,9 @@ public class Applicant {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @OneToOne(mappedBy = "applicant", cascade = CascadeType.REMOVE, fetch = FetchType.EAGER)
+    private ApplicantInfo info;
+
     @OneToMany(mappedBy = "applicant",cascade = CascadeType.REMOVE, fetch = FetchType.EAGER)
     private Set<LanguageSkill> language_skills;
 
@@ -49,6 +52,9 @@ public class Applicant {
 
     @OneToMany(mappedBy = "applicant", cascade = CascadeType.REMOVE, fetch = FetchType.EAGER)
     private Set<ContactApplicant> contacts;
+
+    @OneToMany(mappedBy = "applicant", cascade = CascadeType.REMOVE, fetch = FetchType.EAGER)
+    private Set<SpecializationApplicant> specializations;
 
     public Applicant() {
     }
@@ -66,7 +72,8 @@ public class Applicant {
 
     public Applicant(String status, String first_name, String last_name, String father_name, boolean sex,
                      LocalDate date_of_birth, User user, Set<ContactApplicant> contacts, Set<LanguageSkill> languageSkills,
-                     Set<SportSkill> sportSkills, Set<Experience> experiences, Set<Education> educations) {
+                     Set<SportSkill> sportSkills, Set<Experience> experiences, Set<Education> educations,
+                     Set<SpecializationApplicant> specializations, ApplicantInfo applicantInfo) {
         this.status = status;
         this.first_name = first_name;
         this.last_name = last_name;
@@ -79,6 +86,8 @@ public class Applicant {
         this.sport_skills = sportSkills;
         this.experiences = experiences;
         this.educations = educations;
+        this.specializations = specializations;
+        this.info = applicantInfo;
     }
 
     public Long getId() {
@@ -185,6 +194,22 @@ public class Applicant {
         this.contacts = contacts;
     }
 
+    public Set<SpecializationApplicant> getSpecializations() {
+        return specializations;
+    }
+
+    public void setSpecializations(Set<SpecializationApplicant> specializations) {
+        this.specializations = specializations;
+    }
+
+    public ApplicantInfo getInfo() {
+        return info;
+    }
+
+    public void setInfo(ApplicantInfo info) {
+        this.info = info;
+    }
+
     @Override
     public String toString() {
         return "Applicant{" +
@@ -200,6 +225,8 @@ public class Applicant {
                 ", sport_skills=" + sport_skills +
                 ", experiences=" + experiences +
                 ", educations=" + educations +
+                ", specializations=" + specializations +
+                ", info=" + info +
                 '}';
     }
 }

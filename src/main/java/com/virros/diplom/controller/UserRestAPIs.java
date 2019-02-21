@@ -1,5 +1,9 @@
 package com.virros.diplom.controller;
 
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.pdf.PdfWriter;
+import com.virros.diplom.controller.pdf.GeneratorPDF;
 import com.virros.diplom.model.*;
 import com.virros.diplom.repository.*;
 import com.virros.diplom.security.jwt.JwtProvider;
@@ -7,10 +11,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -50,20 +59,62 @@ public class UserRestAPIs {
     ContactTypeRepository contactTypeRepository;
 
     @Autowired
+    SpecializationApplicantRepository specializationApplicantRepository;
+
+    @Autowired
+    FieldOfActivityRepository fieldOfActivityRepository;
+
+    @Autowired
+    ApplicantInfoRepository applicantInfoRepository;
+
+    @Autowired
     JwtProvider tokenProvider;
+
+    @Autowired
+    GeneratorPDF generatorPDF;
 
     @GetMapping("/info")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<?> getApplicantForAccount(@RequestHeader(value = "Authorization") String token){
+    public ResponseEntity<?> getApplicantForAccount(@RequestHeader(value = "Authorization") String token) {
 
         return ResponseEntity.ok().body(getApplicantByToken(token));
     }
+
+    @PostMapping("/info")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> saveApplicantForAccount(@RequestBody Applicant applicant,
+                                                     @RequestHeader(value = "Authorization") String token) {
+
+        Applicant app = getApplicantByToken(token);
+
+        app.setFirst_name(applicant.getFirst_name());
+        app.setLast_name(applicant.getLast_name());
+        app.setFather_name(applicant.getFather_name());
+        app.setSex(applicant.isSex());
+        app.setDate_of_birth(applicant.getDate_of_birth());
+
+        Applicant result = applicantRepository.save(app);
+
+        return ResponseEntity.ok().body(result);
+    }
+
+    @PutMapping("/status")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<?> switchStatusToAccount(@RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+        applicant.setStatus(applicant.getStatus().equals("Закрытый") ? "Открытый" : "Закрытый");
+
+        Applicant result = applicantRepository.save(applicant);
+        return ResponseEntity.ok().body(result);
+    }
+
 
     // Languages
 
     @GetMapping("/languages")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<?> getLanguagesForAccount(@RequestHeader(value = "Authorization") String token){
+    public ResponseEntity<?> getLanguagesForAccount(@RequestHeader(value = "Authorization") String token) {
 
         Applicant applicant = getApplicantByToken(token);
 
@@ -115,7 +166,7 @@ public class UserRestAPIs {
 
     @GetMapping("/sports")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<?> getSportsForAccount(@RequestHeader(value = "Authorization") String token){
+    public ResponseEntity<?> getSportsForAccount(@RequestHeader(value = "Authorization") String token) {
 
         Applicant applicant = getApplicantByToken(token);
 
@@ -125,7 +176,7 @@ public class UserRestAPIs {
     @PostMapping("/sport")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<?> saveSportForAccount(@RequestBody SportSkill sportSkill,
-                                                    @RequestHeader(value = "Authorization") String token) {
+                                                 @RequestHeader(value = "Authorization") String token) {
 
         Applicant applicant = getApplicantByToken(token);
 
@@ -142,7 +193,7 @@ public class UserRestAPIs {
     @DeleteMapping("/sport/{id}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<?> deleteSportForAccount(@PathVariable Long id,
-                                                      @RequestHeader(value = "Authorization") String token) {
+                                                   @RequestHeader(value = "Authorization") String token) {
 
         Applicant applicant = getApplicantByToken(token);
 
@@ -184,7 +235,7 @@ public class UserRestAPIs {
         Experience exp = experience;
         exp.setApplicant(applicant);
 
-        if(experience.getId() != null) {
+        if (experience.getId() != null) {
             Experience e = experienceRepository.findById(experience.getId()).orElseThrow(() ->
                     new UsernameNotFoundException("Experience not found whit your id!")
             );
@@ -202,7 +253,7 @@ public class UserRestAPIs {
     @DeleteMapping("/experience/{id}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<?> deleteExperienceToAccount(@PathVariable Long id,
-                                                          @RequestHeader(value = "Authorization") String token) {
+                                                       @RequestHeader(value = "Authorization") String token) {
 
         Applicant applicant = getApplicantByToken(token);
 
@@ -237,14 +288,14 @@ public class UserRestAPIs {
     @PostMapping("/education")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<?> saveEducationForAccount(@RequestBody Education education,
-                                                      @RequestHeader(value = "Authorization") String token) {
+                                                     @RequestHeader(value = "Authorization") String token) {
 
         Applicant applicant = getApplicantByToken(token);
 
         Education educ = education;
         educ.setApplicant(applicant);
 
-        if(education.getId() != null) {
+        if (education.getId() != null) {
             Education e = educationRepository.findById(education.getId()).orElseThrow(() ->
                     new UsernameNotFoundException("Education not found whit your id!")
             );
@@ -262,7 +313,7 @@ public class UserRestAPIs {
     @DeleteMapping("/education/{id}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<?> deleteEducationToAccount(@PathVariable Long id,
-                                                       @RequestHeader(value = "Authorization") String token) {
+                                                      @RequestHeader(value = "Authorization") String token) {
 
         Applicant applicant = getApplicantByToken(token);
 
@@ -287,7 +338,7 @@ public class UserRestAPIs {
 
     @GetMapping("/contacts")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<?> getContactsForAccount(@RequestHeader(value = "Authorization") String token){
+    public ResponseEntity<?> getContactsForAccount(@RequestHeader(value = "Authorization") String token) {
 
         Applicant applicant = getApplicantByToken(token);
 
@@ -297,7 +348,7 @@ public class UserRestAPIs {
     @PostMapping("/contact")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<?> saveContactForAccount(@RequestBody ContactApplicant contactApplicant,
-                                                 @RequestHeader(value = "Authorization") String token) {
+                                                   @RequestHeader(value = "Authorization") String token) {
 
         Applicant applicant = getApplicantByToken(token);
 
@@ -314,7 +365,7 @@ public class UserRestAPIs {
     @DeleteMapping("/contact/{id}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<?> deleteContactForAccount(@PathVariable Long id,
-                                                   @RequestHeader(value = "Authorization") String token) {
+                                                     @RequestHeader(value = "Authorization") String token) {
 
         Applicant applicant = getApplicantByToken(token);
 
@@ -335,8 +386,113 @@ public class UserRestAPIs {
         return ResponseEntity.badRequest().body(">>> Not Contact.");
     }
 
+    // Specialization
 
-    private Applicant getApplicantByToken(String token){
+    @GetMapping("/specializations")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> getSpecializationsForAccount(@RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+
+        return ResponseEntity.ok().body(applicant.getSpecializations());
+    }
+
+    @PostMapping("/specialization")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> saveSpecializationForAccount(@RequestBody SpecializationApplicant specializationApplicant,
+                                                          @RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+
+        FieldOfActivity field = fieldOfActivityRepository.findById(specializationApplicant.getField_of_activity().getId()).orElseThrow(
+                () -> new UsernameNotFoundException("Field of activity not found exception!")
+        );
+
+        SpecializationApplicant specialization = new SpecializationApplicant();
+
+        specialization.setApplicant(applicant);
+        specialization.setField_of_activity(field);
+        specialization.setSpecialization(specializationApplicant.getSpecialization());
+
+        SpecializationApplicant result = specializationApplicantRepository.save(specialization);
+        return ResponseEntity.ok().body(result);
+    }
+
+    @DeleteMapping("/specialization/{id}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> deleteSpecializationForAccount(@PathVariable Long id,
+                                                            @RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+
+        if (id != null) {
+            SpecializationApplicant sa = specializationApplicantRepository.findById(id).orElseThrow(() ->
+                    new UsernameNotFoundException("Specialization not found whit your id!")
+            );
+
+            if (!sa.getApplicant().getId().equals(applicant.getId())) {
+                return new ResponseEntity<String>("Fail -> This Specialization does not belong to the applicant.",
+                        HttpStatus.BAD_REQUEST);
+            }
+
+            specializationApplicantRepository.deleteById(id);
+            return ResponseEntity.ok().body(">>> Specialization deleted.");
+        }
+
+        return ResponseEntity.badRequest().body(">>> Not Specialization.");
+    }
+
+    // ApplicantInfo
+
+    @GetMapping("/information")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> getInformationForAccount(@RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+
+        return ResponseEntity.ok().body(applicant.getInfo());
+    }
+
+    @PostMapping("/information")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> saveInformationForAccount(@RequestBody ApplicantInfo applicantInfo,
+                                                       @RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+
+        ApplicantInfo info = applicantInfoRepository.findByApplicant(applicant).orElseThrow(
+                () -> new UsernameNotFoundException("Information not found exception!")
+        );
+
+        info.setReady_to_move(applicantInfo.isReady_to_move());
+        info.setReady_for_remove_work(applicantInfo.isReady_for_remove_work());
+        info.setCity(applicantInfo.getCity().trim().equals("") ? null : applicantInfo.getCity().trim());
+        info.setCitizenship(applicantInfo.getCitizenship().trim().equals("") ? null : applicantInfo.getCitizenship().trim());
+        info.setFamily_status(applicantInfo.getFamily_status());
+        info.setChildren(applicantInfo.isChildren());
+        info.setAbout_me(applicantInfo.getAbout_me().trim().equals("") ? null : applicantInfo.getAbout_me().trim());
+        info.setHobby(applicantInfo.getHobby().trim().equals("") ? null : applicantInfo.getHobby().trim());
+        info.setSalary(applicantInfo.getSalary());
+        info.setAcademic_degree(applicantInfo.getAcademic_degree().trim().equals("") ? null : applicantInfo.getAcademic_degree().trim());
+
+        ApplicantInfo result = applicantInfoRepository.save(info);
+
+        return ResponseEntity.ok().body(result);
+    }
+
+    // Summary
+    @GetMapping("/summary")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> getSummaryForAccount(@RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+        ByteArrayOutputStream baos  = generatorPDF.generatePdfToAccount(applicant);
+
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).contentLength(baos.size()).body(baos.toByteArray());
+    }
+
+
+    private Applicant getApplicantByToken(String token) {
         if (token != null && token.startsWith("Bearer ")) {
             token = token.replace("Bearer ", "");
         } else {

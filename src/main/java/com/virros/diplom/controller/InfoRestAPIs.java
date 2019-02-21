@@ -75,4 +75,9 @@ public class InfoRestAPIs {
         return ResponseEntity.ok().body(constants.getFormTraining());
     }
 
+    @GetMapping("/familystatuses")
+    public ResponseEntity<?> getInfoAboutFamilyStatuses() {
+        return ResponseEntity.ok().body(constants.getFamilyStatus());
+    }
+
 }

@@ -6,10 +6,7 @@ import com.virros.diplom.message.request.SignUpFormApplicant;
 import com.virros.diplom.message.request.SignUpFormCompany;
 import com.virros.diplom.message.response.JwtResponse;
 import com.virros.diplom.model.*;
-import com.virros.diplom.repository.ApplicantRepository;
-import com.virros.diplom.repository.EmployerRepository;
-import com.virros.diplom.repository.RoleRepository;
-import com.virros.diplom.repository.UserRepository;
+import com.virros.diplom.repository.*;
 import com.virros.diplom.security.jwt.JwtProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +45,9 @@ public class AuthRestAPIs {
     ApplicantRepository applicantRepository;
 
     @Autowired
+    ApplicantInfoRepository applicantInfoRepository;
+
+    @Autowired
     RoleRepository roleRepository;
 
     @Autowired
@@ -55,6 +55,7 @@ public class AuthRestAPIs {
 
     @Autowired
     JwtProvider jwtProvider;
+
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginForm loginRequest) {
@@ -128,9 +129,9 @@ public class AuthRestAPIs {
         Applicant applicant = new Applicant("Закрытый", signUpRequest.getFirst_name(), signUpRequest.getLast_name(),
                 signUpRequest.getFather_name(), signUpRequest.getSex(), signUpRequest.getDate_of_birth(), user);
 
-        logger.info(applicant.toString());
+        Applicant res = applicantRepository.save(applicant);
 
-        applicantRepository.save(applicant);
+        applicantInfoRepository.save(new ApplicantInfo(res));
 
         return ResponseEntity.ok().body("Applicant register successfully!");
     }

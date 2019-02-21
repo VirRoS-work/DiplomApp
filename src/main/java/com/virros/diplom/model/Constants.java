@@ -15,10 +15,16 @@ public class Constants {
 
     private final List<String> typesEmployment = Arrays.asList("Полный", "Неполный");
 
+    private final List<String> familyStatus = Arrays.asList("Не замужем/не женат", "Разведен/разведена", "Замужем/женат");
+
     private final List<String> formTraining = Arrays.asList("Очная", "Очно-Заочная", "Заочная");
 
     public List<String> getTypesConpany() {
         return typesConpany;
+    }
+
+    public List<String> getFamilyStatus() {
+        return familyStatus;
     }
 
     public List<String> getCountEmployeesConpany() {
