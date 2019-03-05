@@ -37,7 +37,9 @@ public class User{
     @Size(min=6, max = 100)
     private String password;
 
-    @ManyToMany(fetch = FetchType.LAZY)
+    private boolean blocked;
+
+    @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinTable(name = "user_roles", 
     	joinColumns = @JoinColumn(name = "user_id"), 
     	inverseJoinColumns = @JoinColumn(name = "role_id"))
@@ -49,6 +51,13 @@ public class User{
         this.username = username;
         this.email = email;
         this.password = password;
+    }
+
+    public User(String username, String email, String password, boolean blocked) {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+        this.blocked = blocked;
     }
 
     public Long getId() {
@@ -89,5 +98,13 @@ public class User{
 
     public void setRoles(Set<Role> roles) {
         this.roles = roles;
+    }
+
+    public boolean isBlocked() {
+        return blocked;
+    }
+
+    public void setBlocked(boolean blocked) {
+        this.blocked = blocked;
     }
 }

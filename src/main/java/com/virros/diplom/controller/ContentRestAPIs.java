@@ -1,5 +1,6 @@
 package com.virros.diplom.controller;
 
+import com.virros.diplom.controller.pdf.GeneratorPDF;
 import com.virros.diplom.message.response.CountVacancies;
 import com.virros.diplom.model.Applicant;
 import com.virros.diplom.model.Employer;
@@ -10,11 +11,13 @@ import com.virros.diplom.repository.VacancyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +37,9 @@ public class ContentRestAPIs {
     @Autowired
     ApplicantRepository applicantRepository;
 
+    @Autowired
+    GeneratorPDF generatorPDF;
+
     @GetMapping("/count_vacancies")
     public ResponseEntity<?> getCompaniesVacaniesCount() {
 
@@ -52,6 +58,7 @@ public class ContentRestAPIs {
             counts.add(countVacancies);
         }
 
+        counts.removeIf(e -> e.getCount() <= 0);
         counts.sort((e1, e2) -> e2.getCount().compareTo(e1.getCount()));
 
         return ResponseEntity.ok().body(counts);
@@ -62,6 +69,14 @@ public class ContentRestAPIs {
     public ResponseEntity<?> getLastTop10Vacancies() {
 
         List<Vacancy> vacancies = vacancyRepository.findTop10ByStatus("Активна");
+
+        return ResponseEntity.ok().body(vacancies);
+    }
+
+    @GetMapping("/vacancies")
+    public ResponseEntity<?> getVacancies() {
+
+        List<Vacancy> vacancies = vacancyRepository.findAllByStatus("Активна");
 
         return ResponseEntity.ok().body(vacancies);
     }
@@ -91,7 +106,7 @@ public class ContentRestAPIs {
     public ResponseEntity<?> getCompanyById(@PathVariable Long id) {
 
         Employer result = employerRepository.findById(id).orElseThrow(() ->
-        new UsernameNotFoundException("Company not found with your id"));
+                new UsernameNotFoundException("Company not found with your id"));
 
         result.getVacancies().removeIf(n -> (!n.getStatus().equals("Активна")));
 
@@ -109,9 +124,21 @@ public class ContentRestAPIs {
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
 
         Applicant result = applicantRepository.findApplicantByIdAndStatus(id, "Открытый").orElseThrow(() ->
-        new UsernameNotFoundException("User not found with your id!"));
+                new UsernameNotFoundException("User not found with your id!"));
 
         return ResponseEntity.ok().body(result);
+    }
+
+    @GetMapping("/summary/{id}")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('ADMIN')")
+    public ResponseEntity<?> getSummaryUserById(@PathVariable Long id) {
+
+        Applicant applicant = applicantRepository.findApplicantByIdAndStatus(id, "Открытый").orElseThrow(() ->
+                new UsernameNotFoundException("User not found with your id!"));
+
+        ByteArrayOutputStream baos  = generatorPDF.generatePdfToAccount(applicant);
+
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).contentLength(baos.size()).body(baos.toByteArray());
     }
 
 }

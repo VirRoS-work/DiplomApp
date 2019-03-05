@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface VacancyRepository extends JpaRepository<Vacancy, Long> {
     List<Vacancy> findTop10ByStatus(String status);
+    List<Vacancy> findAllByStatus(String status);
 }

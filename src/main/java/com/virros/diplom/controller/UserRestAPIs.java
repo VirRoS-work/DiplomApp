@@ -1,8 +1,5 @@
 package com.virros.diplom.controller;
 
-import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.pdf.PdfWriter;
 import com.virros.diplom.controller.pdf.GeneratorPDF;
 import com.virros.diplom.model.*;
 import com.virros.diplom.repository.*;
@@ -20,6 +17,9 @@ import org.springframework.web.bind.annotation.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -66,6 +66,15 @@ public class UserRestAPIs {
 
     @Autowired
     ApplicantInfoRepository applicantInfoRepository;
+
+    @Autowired
+    BookmarkRepository bookmarkRepository;
+
+    @Autowired
+    VacancyRepository vacancyRepository;
+
+    @Autowired
+    NotificationRepository notificationRepository;
 
     @Autowired
     JwtProvider tokenProvider;
@@ -486,11 +495,112 @@ public class UserRestAPIs {
     public ResponseEntity<?> getSummaryForAccount(@RequestHeader(value = "Authorization") String token) {
 
         Applicant applicant = getApplicantByToken(token);
-        ByteArrayOutputStream baos  = generatorPDF.generatePdfToAccount(applicant);
+        ByteArrayOutputStream baos = generatorPDF.generatePdfToAccount(applicant);
 
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).contentLength(baos.size()).body(baos.toByteArray());
     }
 
+    // Bookmarks
+    @GetMapping("/bookmarks")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> getBookmarksForAccount(@RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+        List<Bookmark> bookmarks = bookmarkRepository.findAllByApplicant(applicant);
+
+        List<Vacancy> vacancies = new ArrayList<>();
+        for (Bookmark bookmark : bookmarks) {
+            if (bookmark.getVacancy().getStatus().equals("Активна")) vacancies.add(bookmark.getVacancy());
+        }
+
+        return ResponseEntity.ok().body(vacancies);
+    }
+
+    @PostMapping("/bookmark")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> saveBookmarksForAccount(@RequestBody Long vacancy_id,
+                                                     @RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+
+        Vacancy vacancy = vacancyRepository.findById(vacancy_id).orElseThrow(() ->
+                new UsernameNotFoundException("Vacancy not found with your id!"));
+
+        Bookmark bookmark = new Bookmark(applicant, vacancy);
+        Bookmark result = bookmarkRepository.save(bookmark);
+
+        return ResponseEntity.ok().body(result);
+    }
+
+    @DeleteMapping("/bookmark/{id}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> deleteBookmarkForAccount(@PathVariable Long id,
+                                                      @RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+
+        if (id != null) {
+            Vacancy vacancy = vacancyRepository.findById(id).orElseThrow(() ->
+                    new UsernameNotFoundException("Vacancy not found whit your id!")
+            );
+
+            Bookmark bookmark = bookmarkRepository.findByApplicantAndVacancy(applicant, vacancy).orElseThrow(() ->
+                    new UsernameNotFoundException("Bookmark not found whit your id!"));
+
+            bookmarkRepository.delete(bookmark);
+            return ResponseEntity.ok().body(">>> Bookmark deleted.");
+        }
+
+        return ResponseEntity.badRequest().body(">>> Not Bookmark.");
+    }
+
+    @GetMapping("/bookmark/check/{id}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> checkBookmark(@PathVariable Long id,
+                                           @RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+
+        Vacancy vacancy = vacancyRepository.findById(id).orElseThrow(() ->
+                new UsernameNotFoundException("Vacancy not found with your id!"));
+
+        Boolean result = bookmarkRepository.existsByApplicantAndVacancy(applicant, vacancy);
+
+        return ResponseEntity.ok().body(result);
+    }
+
+    // Notifications
+
+    @PostMapping("/notification")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> saveNotificationForAccount(@RequestBody Long vacancy_id,
+                                                        @RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+
+        Vacancy vacancy = vacancyRepository.findById(vacancy_id).orElseThrow(() ->
+                new UsernameNotFoundException("Vacancy not found with your id!"));
+
+        Notification notification = new Notification(applicant, vacancy, LocalDateTime.now(), "Новый");
+        Notification result = notificationRepository.save(notification);
+
+        return ResponseEntity.ok().body(result);
+    }
+
+    @GetMapping("/notification/check/{id}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> checkNotificationForApplicant(@PathVariable Long id,
+                                                           @RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+
+        Vacancy vacancy = vacancyRepository.findById(id).orElseThrow(() ->
+                new UsernameNotFoundException("Vacancy not found with your id!"));
+
+        Boolean result = notificationRepository.existsByApplicantAndVacancy(applicant, vacancy);
+
+        return ResponseEntity.ok().body(result);
+    }
 
     private Applicant getApplicantByToken(String token) {
         if (token != null && token.startsWith("Bearer ")) {

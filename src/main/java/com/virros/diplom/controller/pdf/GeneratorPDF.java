@@ -222,7 +222,7 @@ public class GeneratorPDF {
             exp.add(getLine("Место работы", experience.getCompany_name()));
             exp.add(getLine("Позиция", experience.getPosition()));
             exp.add(getLine("Время работы", experience.getDate_start().format(formatter) + " - " +
-                    experience.getDate_end() != null ? experience.getDate_end().format(formatter) : "Настоящее время"));
+                    (experience.getDate_end() != null ? experience.getDate_end().format(formatter) : "Настоящее время") ));
             exp.add(getLine("Обязанности", experience.getDuties()));
             exp.add(getLine("Достижения", experience.getAchievements()));
 
@@ -240,6 +240,8 @@ public class GeneratorPDF {
 
     private Paragraph getLine(String name, String value) {
         Paragraph paragraph = new Paragraph();
+
+        if(value == null) return paragraph;
 
         Chunk n = new Chunk(name + ": ", textb);
         Chunk v = new Chunk(value, text);

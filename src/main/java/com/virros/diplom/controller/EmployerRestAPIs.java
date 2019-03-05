@@ -12,6 +12,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/employer")
@@ -42,6 +44,9 @@ public class EmployerRestAPIs {
 
     @Autowired
     VacancyRepository vacancyRepository;
+
+    @Autowired
+    NotificationRepository notificationRepository;
 
     @Autowired
     FieldOfActivityRepository fieldOfActivityRepository;
@@ -373,6 +378,48 @@ public class EmployerRestAPIs {
         }
 
         return ResponseEntity.badRequest().body(">>> Not Vacancy.");
+    }
+
+    // Notifications
+
+    @GetMapping("/notifications")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('ADMIN')")
+    public ResponseEntity<?> getNotificationForAccount(@RequestHeader(value = "Authorization") String token) {
+
+        Employer employer = getEmployerByToken(token);
+
+        List<Notification> notifications = notificationRepository.findAllByCompany(employer);
+
+        notifications.sort((e1, e2) -> e2.getDate().compareTo(e1.getDate()));
+
+        return ResponseEntity.ok().body(notifications);
+    }
+
+    @GetMapping("/notifications/new")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('ADMIN')")
+    public ResponseEntity<?> getNewNotification(@RequestHeader(value = "Authorization") String token) {
+
+        Employer employer = getEmployerByToken(token);
+
+        List<Notification> notifications = notificationRepository.findAllNewNotificationByCompany(employer);
+
+        return ResponseEntity.ok().body(notifications.size());
+    }
+
+    @PutMapping("/notifications/see")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('ADMIN')")
+    public ResponseEntity<?> putNewNotification(@RequestHeader(value = "Authorization") String token) {
+
+        Employer employer = getEmployerByToken(token);
+
+        List<Notification> notifications = notificationRepository.findAllNewNotificationByCompany(employer);
+
+        for(Notification notification : notifications) {
+            notification.setStatus("Посмотрено");
+            notificationRepository.save(notification);
+        }
+
+        return ResponseEntity.ok().body("Notifications update!");
     }
 
     private Employer getEmployerByToken(String token) {

@@ -73,7 +73,7 @@ public class AuthRestAPIs {
 
         String jwt = jwtProvider.generateJwtToken(authentication);
         String username = jwtProvider.getUserNameFromJwtToken(jwt);
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByUsernameAndBlocked(username, false)
                 .orElseThrow(() ->
                         new UsernameNotFoundException("User Not Found with -> username or email : " + username)
                 );
@@ -99,7 +99,7 @@ public class AuthRestAPIs {
                     HttpStatus.BAD_REQUEST);
         }
 
-        User user = registerUser(signUpRequest.getSignUpForm());
+        User user = registerUser(signUpRequest.getSignUpForm(), true);
 
         //register company
 
@@ -127,7 +127,7 @@ public class AuthRestAPIs {
                     HttpStatus.BAD_REQUEST);
         }
 
-        User user = registerUser(signUpRequest.getSignUpForm());
+        User user = registerUser(signUpRequest.getSignUpForm(), false);
 
         //register applicant
 
@@ -143,9 +143,9 @@ public class AuthRestAPIs {
         return ResponseEntity.ok().body("Applicant register successfully!");
     }
 
-    private User registerUser(SignUpForm signUpRequest) {
+    private User registerUser(SignUpForm signUpRequest, boolean status) {
         User user = new User(signUpRequest.getUsername(),
-                signUpRequest.getEmail(), encoder.encode(signUpRequest.getPassword()));
+                signUpRequest.getEmail(), encoder.encode(signUpRequest.getPassword()), status);
 
         Set<String> strRoles = signUpRequest.getRole();
         Set<Role> roles = new HashSet<>();
@@ -174,6 +174,5 @@ public class AuthRestAPIs {
         user.setRoles(roles);
         return userRepository.save(user);
     }
-
 
 }
