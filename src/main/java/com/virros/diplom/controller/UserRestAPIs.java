@@ -77,6 +77,9 @@ public class UserRestAPIs {
     NotificationRepository notificationRepository;
 
     @Autowired
+    BookRepository bookRepository;
+
+    @Autowired
     JwtProvider tokenProvider;
 
     @Autowired
@@ -221,6 +224,53 @@ public class UserRestAPIs {
         }
 
         return ResponseEntity.badRequest().body(">>> Not Sport Skill.");
+    }
+
+    // Books
+
+    @GetMapping("/books")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> getBooksForAccount(@RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+
+        return ResponseEntity.ok().body(applicant.getBooks());
+    }
+
+    @PostMapping("/book")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> saveBookForAccount(@RequestBody Book book,
+                                                 @RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+
+        book.setApplicant(applicant);
+        Book result = bookRepository.save(book);
+
+        return ResponseEntity.ok().body(result);
+    }
+
+    @DeleteMapping("/book/{id}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<?> deleteBookForAccount(@PathVariable Long id,
+                                                  @RequestHeader(value = "Authorization") String token) {
+
+        Applicant applicant = getApplicantByToken(token);
+
+        if (id != null){
+            Book book = bookRepository.findById(id).orElseThrow(() ->
+            new UsernameNotFoundException("Book not found whit your id"));
+
+            if (!book.getApplicant().getId().equals(applicant.getId())) {
+                return new ResponseEntity<String>("Fail -> This Book does not belong to the applicant.",
+                        HttpStatus.BAD_REQUEST);
+            }
+
+            bookRepository.deleteById(id);
+            return ResponseEntity.ok().body(">>> Book deleted");
+        }
+
+        return ResponseEntity.badRequest().body(">>> Not Book");
     }
 
     // Experience
@@ -602,6 +652,8 @@ public class UserRestAPIs {
         return ResponseEntity.ok().body(result);
     }
 
+
+
     private Applicant getApplicantByToken(String token) {
         if (token != null && token.startsWith("Bearer ")) {
             token = token.replace("Bearer ", "");
@@ -621,4 +673,6 @@ public class UserRestAPIs {
 
         return applicant;
     }
+
+
 }

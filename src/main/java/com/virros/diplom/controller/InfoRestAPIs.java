@@ -1,10 +1,7 @@
 package com.virros.diplom.controller;
 
 import com.virros.diplom.model.Constants;
-import com.virros.diplom.repository.ContactTypeRepository;
-import com.virros.diplom.repository.FieldOfActivityRepository;
-import com.virros.diplom.repository.LanguageRepository;
-import com.virros.diplom.repository.SportRepository;
+import com.virros.diplom.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;

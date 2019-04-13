@@ -1,5 +1,6 @@
 package com.virros.diplom.controller;
 
+import com.virros.diplom.message.response.StatisticVacancy;
 import com.virros.diplom.model.*;
 import com.virros.diplom.repository.*;
 import com.virros.diplom.security.jwt.JwtProvider;
@@ -12,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -50,6 +52,9 @@ public class EmployerRestAPIs {
 
     @Autowired
     FieldOfActivityRepository fieldOfActivityRepository;
+
+    @Autowired
+    BookmarkRepository bookmarkRepository;
 
     @Autowired
     private JwtProvider tokenProvider;
@@ -372,9 +377,37 @@ public class EmployerRestAPIs {
             }
 
             vacancy.setStatus("Активна".equals(vacancy.getStatus()) ? "Неактивна" : "Активна");
+            if(vacancy.getStatus().equals("Активна")) vacancy.setPublication_date(LocalDateTime.now());
             vacancyRepository.save(vacancy);
 
             return ResponseEntity.ok().body(vacancy);
+        }
+
+        return ResponseEntity.badRequest().body(">>> Not Vacancy.");
+    }
+
+    @GetMapping("/vacancy/statistic/{id}")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('ADMIN')")
+    public ResponseEntity<?> getStatisticVacancy(@PathVariable Long id,
+                                                 @RequestHeader(value = "Authorization") String token) {
+
+        Employer employer = getEmployerByToken(token);
+
+        if (id != null) {
+            Vacancy vacancy = vacancyRepository.findById(id).orElseThrow(() ->
+                    new UsernameNotFoundException("Vacancy not found whit your id!")
+            );
+
+            if (!vacancy.getEmployer().getId().equals(employer.getId())) {
+                return new ResponseEntity<String>("Fail -> This Vacancy does not belong to the company.",
+                        HttpStatus.BAD_REQUEST);
+            }
+
+            return ResponseEntity.ok().body(new StatisticVacancy(vacancy.getViews(),
+                    bookmarkRepository.countBookmarksByVacancy(vacancy),
+                    notificationRepository.countNotificationsByVacancy(vacancy),
+                    notificationRepository.countNotificationsByVacancyAndDateAfter(vacancy,
+                            LocalDateTime.now().withHour(0).withMinute(0).withSecond(0))));
         }
 
         return ResponseEntity.badRequest().body(">>> Not Vacancy.");

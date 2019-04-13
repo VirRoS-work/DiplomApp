@@ -56,6 +56,9 @@ public class Applicant {
     @OneToMany(mappedBy = "applicant", cascade = CascadeType.REMOVE, fetch = FetchType.EAGER)
     private Set<SpecializationApplicant> specializations;
 
+    @OneToMany(mappedBy = "applicant", cascade = CascadeType.REMOVE, fetch = FetchType.EAGER)
+    private Set<Book> books;
+
     public Applicant() {
     }
 
@@ -73,7 +76,8 @@ public class Applicant {
     public Applicant(String status, String first_name, String last_name, String father_name, boolean sex,
                      LocalDate date_of_birth, User user, Set<ContactApplicant> contacts, Set<LanguageSkill> languageSkills,
                      Set<SportSkill> sportSkills, Set<Experience> experiences, Set<Education> educations,
-                     Set<SpecializationApplicant> specializations, ApplicantInfo applicantInfo) {
+                     Set<SpecializationApplicant> specializations, ApplicantInfo applicantInfo,
+                     Set<Book> books) {
         this.status = status;
         this.first_name = first_name;
         this.last_name = last_name;
@@ -88,6 +92,7 @@ public class Applicant {
         this.educations = educations;
         this.specializations = specializations;
         this.info = applicantInfo;
+        this.books = books;
     }
 
     public Long getId() {
@@ -210,6 +215,14 @@ public class Applicant {
         this.info = info;
     }
 
+    public Set<Book> getBooks() {
+        return books;
+    }
+
+    public void setBooks(Set<Book> books) {
+        this.books = books;
+    }
+
     @Override
     public String toString() {
         return "Applicant{" +
@@ -227,6 +240,7 @@ public class Applicant {
                 ", educations=" + educations +
                 ", specializations=" + specializations +
                 ", info=" + info +
+                ", book=" + books +
                 '}';
     }
 }

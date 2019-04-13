@@ -2,8 +2,10 @@ package com.virros.diplom.controller;
 
 import com.virros.diplom.controller.pdf.GeneratorPDF;
 import com.virros.diplom.message.response.CountVacancies;
+import com.virros.diplom.message.response.EmployerWithCountVacancy;
 import com.virros.diplom.model.Applicant;
 import com.virros.diplom.model.Employer;
+import com.virros.diplom.model.PageInfo;
 import com.virros.diplom.model.Vacancy;
 import com.virros.diplom.repository.ApplicantRepository;
 import com.virros.diplom.repository.EmployerRepository;
@@ -11,6 +13,7 @@ import com.virros.diplom.repository.VacancyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -81,11 +84,23 @@ public class ContentRestAPIs {
         return ResponseEntity.ok().body(vacancies);
     }
 
+    @PostMapping("/vacancies")
+    public ResponseEntity<?> getVacanciesPageable(@RequestBody PageInfo pageInfo) {
+
+        List<Vacancy> vacancies = vacancyRepository.findAllByStatus("Активна",
+                PageRequest.of(pageInfo.getPageIndex(), pageInfo.getPageSize()));
+
+        return ResponseEntity.ok().body(vacancies);
+    }
+
     @GetMapping("/vacancy/{id}")
     public ResponseEntity<?> getVacancyById(@PathVariable Long id) {
 
         Vacancy result = vacancyRepository.findById(id).orElseThrow(() ->
                 new UsernameNotFoundException("Vacancy not found whit your id!"));
+
+        result.setViews(result.getViews() + 1);
+        vacancyRepository.save(result);
 
         return ResponseEntity.ok().body(result);
     }
@@ -139,6 +154,32 @@ public class ContentRestAPIs {
         ByteArrayOutputStream baos  = generatorPDF.generatePdfToAccount(applicant);
 
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).contentLength(baos.size()).body(baos.toByteArray());
+    }
+
+    @GetMapping("/employers")
+    public ResponseEntity<?> getCountEmployers() {
+        return ResponseEntity.ok().body(employerRepository.countAllByUnblockedUser());
+    }
+
+    @PostMapping("/employers")
+    public ResponseEntity<?> getListEmployers(@RequestBody PageInfo pageInfo) {
+
+        List<EmployerWithCountVacancy> employers = new ArrayList<>();
+        int count;
+
+        for(Employer employer : employerRepository.findByUnblockedUser(
+                PageRequest.of(pageInfo.getPageIndex(), pageInfo.getPageSize()))){
+
+            count = 0;
+            for (Vacancy vacancy : employer.getVacancies()) if ("Активна".equals(vacancy.getStatus())) count++;
+            employer.setVacancies(null);
+            employer.setContacts(null);
+            employer.setOffices(null);
+
+            employers.add(new EmployerWithCountVacancy(employer, count));
+        }
+
+        return ResponseEntity.ok().body(employers);
     }
 
 }

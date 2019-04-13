@@ -14,4 +14,5 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
     List<Bookmark> findAllByApplicant(Applicant applicant);
     Optional<Bookmark> findByApplicantAndVacancy(Applicant applicant, Vacancy vacancy);
     boolean existsByApplicantAndVacancy(Applicant applicant, Vacancy vacancy);
+    Long countBookmarksByVacancy(Vacancy vacancy);
 }

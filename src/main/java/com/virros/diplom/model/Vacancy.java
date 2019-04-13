@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Entity
@@ -33,6 +34,11 @@ public class Vacancy {
 
     private Long experience_min;
 
+    private LocalDateTime publication_date;
+
+    @JsonIgnore
+    private Long views = 0L;
+
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "employer_id")
     @JsonIgnore
@@ -50,7 +56,7 @@ public class Vacancy {
 
     public Vacancy(String status, String title, String description, Long salary_min, Long salary_max,
                    Boolean remove_work, String type_employment, Long experience_min, Employer employer,
-                   Office office, Set<SpecializationVacancy> fields) {
+                   Office office, Set<SpecializationVacancy> fields, LocalDateTime publication_date) {
         this.status = status;
         this.title = title;
         this.description = description;
@@ -62,6 +68,7 @@ public class Vacancy {
         this.employer = employer;
         this.office = office;
         this.fields = fields;
+        this.publication_date = publication_date;
     }
 
     public Long getId() {
@@ -158,5 +165,21 @@ public class Vacancy {
 
     public void setFields(Set<SpecializationVacancy> fields) {
         this.fields = fields;
+    }
+
+    public LocalDateTime getPublication_date() {
+        return publication_date;
+    }
+
+    public void setPublication_date(LocalDateTime publication_date) {
+        this.publication_date = publication_date;
+    }
+
+    public Long getViews() {
+        return views;
+    }
+
+    public void setViews(Long views) {
+        this.views = views;
     }
 }
