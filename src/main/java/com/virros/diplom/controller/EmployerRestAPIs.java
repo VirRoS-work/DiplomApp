@@ -1,5 +1,6 @@
 package com.virros.diplom.controller;
 
+import com.virros.diplom.controller.pdf.GeneratorPDF;
 import com.virros.diplom.message.response.StatisticVacancy;
 import com.virros.diplom.model.*;
 import com.virros.diplom.repository.*;
@@ -8,11 +9,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -57,7 +60,13 @@ public class EmployerRestAPIs {
     BookmarkRepository bookmarkRepository;
 
     @Autowired
+    EventRepository eventRepository;
+
+    @Autowired
     private JwtProvider tokenProvider;
+
+    @Autowired
+    private GeneratorPDF generatorPDF;
 
     @GetMapping("/info")
     @PreAuthorize("hasRole('COMPANY') or hasRole('ADMIN')")
@@ -455,6 +464,53 @@ public class EmployerRestAPIs {
         return ResponseEntity.ok().body("Notifications update!");
     }
 
+    // Events
+
+    @GetMapping("/events")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('ADMIN')")
+    public ResponseEntity<?> getEventsForAccount(@RequestHeader(value = "Authorization") String token) {
+
+        Employer employer = getEmployerByToken(token);
+
+        return ResponseEntity.ok().body(employer.getEvents());
+    }
+
+    @PostMapping("/event")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('ADMIN')")
+    public ResponseEntity<?> saveEventForAccount(@RequestBody Event event,
+                                                 @RequestHeader(value = "Authorization") String token) {
+
+        Employer employer = getEmployerByToken(token);
+
+        event.setEmployer(employer);
+        Event result = eventRepository.save(event);
+
+        return ResponseEntity.ok().body(result);
+    }
+
+    @DeleteMapping("/event/{id}")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('ADMIN')")
+    public ResponseEntity<?> deleteEventForAccount(@PathVariable Long id,
+                                                           @RequestHeader(value = "Authorization") String token) {
+
+        Employer employer = getEmployerByToken(token);
+
+        if(id != null) {
+            Event event = eventRepository.findById(id).orElseThrow(() ->
+                    new UsernameNotFoundException("Event not found whit your id!"));
+
+            if (!event.getEmployer().getId().equals(employer.getId())) {
+                return new ResponseEntity<String>("Fail -> This Event does not belong to the company.",
+                        HttpStatus.BAD_REQUEST);
+            }
+
+            eventRepository.deleteById(id);
+            return ResponseEntity.ok().body(">>> Event deleted.");
+        }
+
+        return ResponseEntity.badRequest().body(">>> Not Event.");
+    }
+
     private Employer getEmployerByToken(String token) {
         if (token != null && token.startsWith("Bearer ")) {
             token = token.replace("Bearer ", "");
@@ -473,6 +529,29 @@ public class EmployerRestAPIs {
         );
 
         return employer;
+    }
+
+    @GetMapping("/private_summary/{id}")
+    @PreAuthorize("hasRole('COMPANY') or hasRole('ADMIN')")
+    public ResponseEntity<?> getSummaryUserById(@PathVariable Long id,
+                                                @RequestHeader(value = "Authorization") String token) {
+
+        Employer employer = getEmployerByToken(token);
+
+        Applicant applicant = null;
+
+        for (Notification n : notificationRepository.findAllByCompany(employer)){
+            if(n.getApplicant().getId().equals(id)){
+                applicant = n.getApplicant();
+            }
+        }
+
+        if (applicant == null) throw new UsernameNotFoundException("Applicant not found!");
+
+        ByteArrayOutputStream baos = generatorPDF.generatePdfToAccount(applicant);
+
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).contentLength(baos.size()).body(baos.toByteArray());
+
     }
 
 }

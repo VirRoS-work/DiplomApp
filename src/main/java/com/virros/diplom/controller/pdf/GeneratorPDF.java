@@ -68,6 +68,11 @@ public class GeneratorPDF {
                 document.add(getSpecializationsForAccountParagraf(applicant));
             }
 
+            if (applicant.getBooks() != null) {
+                document.add(Chunk.NEWLINE);
+                document.add(getBooksForAccountParagraf(applicant));
+            }
+
             if (applicant.getLanguage_skills() != null) {
                 document.add(Chunk.NEWLINE);
                 document.add(getLanguagesForAccountParagraf(applicant));
@@ -170,6 +175,18 @@ public class GeneratorPDF {
 
         for (LanguageSkill language : applicant.getLanguage_skills()) {
             paragraph.add(getLine(language.getLanguage().getName(), language.getOwnership_level()));
+        }
+
+        return paragraph;
+    }
+
+    private Paragraph getBooksForAccountParagraf(Applicant applicant) {
+        Paragraph paragraph = new Paragraph();
+
+        paragraph.add(getHeader("Прочитанные книги"));
+
+        for (Book book : applicant.getBooks()) {
+            paragraph.add(getLine(book.getAuthor(), book.getName()));
         }
 
         return paragraph;

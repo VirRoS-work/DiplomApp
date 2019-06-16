@@ -29,7 +29,7 @@ public class Employer {
     private String address;
     @Size(max = 250)
     private String site;
-    @Size(max = 1000)
+    @Size(max = 2000)
     private String description;
 
     @JsonIgnore
@@ -46,11 +46,14 @@ public class Employer {
     @OneToMany(mappedBy = "employer", fetch = FetchType.EAGER, cascade = CascadeType.REMOVE)
     private Set<Vacancy> vacancies;
 
+    @OneToMany(mappedBy = "employer", fetch = FetchType.EAGER, cascade = CascadeType.REMOVE)
+    private Set<Event> events;
+
     public Employer() {
     }
 
     public Employer(String name, String type, String number_of_person, String address, String site, String description,
-                    User user, Set<ContactPerson> contacts, Set<Office> offices, Set<Vacancy> vacancies) {
+                    User user, Set<ContactPerson> contacts, Set<Office> offices, Set<Vacancy> vacancies, Set<Event> events) {
         this.name = name;
         this.type = type;
         this.number_of_person = number_of_person;
@@ -61,6 +64,7 @@ public class Employer {
         this.contacts = contacts;
         this.offices = offices;
         this.vacancies = vacancies;
+        this.events = events;
     }
 
     public Long getId() {
@@ -151,4 +155,11 @@ public class Employer {
         this.vacancies = vacancies;
     }
 
+    public Set<Event> getEvents() {
+        return events;
+    }
+
+    public void setEvents(Set<Event> events) {
+        this.events = events;
+    }
 }

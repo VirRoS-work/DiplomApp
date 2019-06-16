@@ -1,14 +1,16 @@
 package com.virros.diplom.controller;
 
 import com.virros.diplom.controller.pdf.GeneratorPDF;
+import com.virros.diplom.message.request.CompanyFilter;
+import com.virros.diplom.message.request.VacancyFilter;
 import com.virros.diplom.message.response.CountVacancies;
 import com.virros.diplom.message.response.EmployerWithCountVacancy;
-import com.virros.diplom.model.Applicant;
-import com.virros.diplom.model.Employer;
-import com.virros.diplom.model.PageInfo;
-import com.virros.diplom.model.Vacancy;
+import com.virros.diplom.message.response.EventMessage;
+import com.virros.diplom.message.response.VacancyMessage;
+import com.virros.diplom.model.*;
 import com.virros.diplom.repository.ApplicantRepository;
 import com.virros.diplom.repository.EmployerRepository;
+import com.virros.diplom.repository.EventRepository;
 import com.virros.diplom.repository.VacancyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +23,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayOutputStream;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -39,6 +43,9 @@ public class ContentRestAPIs {
 
     @Autowired
     ApplicantRepository applicantRepository;
+
+    @Autowired
+    EventRepository eventRepository;
 
     @Autowired
     GeneratorPDF generatorPDF;
@@ -72,8 +79,11 @@ public class ContentRestAPIs {
     public ResponseEntity<?> getLastTop10Vacancies() {
 
         List<Vacancy> vacancies = vacancyRepository.findTop10ByStatus("Активна");
+        List<VacancyMessage> result = new ArrayList<>();
 
-        return ResponseEntity.ok().body(vacancies);
+        vacancies.forEach(v -> result.add(new VacancyMessage(v, v.getEmployer().getId(), v.getEmployer().getName())));
+
+        return ResponseEntity.ok().body(result);
     }
 
     @GetMapping("/vacancies")
@@ -151,7 +161,7 @@ public class ContentRestAPIs {
         Applicant applicant = applicantRepository.findApplicantByIdAndStatus(id, "Открытый").orElseThrow(() ->
                 new UsernameNotFoundException("User not found with your id!"));
 
-        ByteArrayOutputStream baos  = generatorPDF.generatePdfToAccount(applicant);
+        ByteArrayOutputStream baos = generatorPDF.generatePdfToAccount(applicant);
 
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).contentLength(baos.size()).body(baos.toByteArray());
     }
@@ -161,14 +171,65 @@ public class ContentRestAPIs {
         return ResponseEntity.ok().body(employerRepository.countAllByUnblockedUser());
     }
 
+    @PostMapping("/filter/employers/count")
+    public ResponseEntity<?> getCountFilterEmployers(@RequestBody CompanyFilter filter) {
+
+        return ResponseEntity.ok().body(employerRepository.countFilterByUnblockedUser(filter.getName(),
+                filter.getEmptyCompany()));
+    }
+
+    @PostMapping("/filter/employers")
+    public ResponseEntity<?> getFilterEmployers(@RequestBody CompanyFilter filter) {
+
+        List<EmployerWithCountVacancy> employers = new ArrayList<>();
+        int count;
+
+        for (Employer employer : employerRepository.findAllFilterByUnblockedUser(filter.getName(),
+                filter.getEmptyCompany(),
+                PageRequest.of(filter.getInfo().getPageIndex(), filter.getInfo().getPageSize()))) {
+
+            count = (int) employer.getVacancies().stream().filter(e -> "Активна".equals(e.getStatus())).count();
+
+            employer.setVacancies(null);
+            employer.setContacts(null);
+            employer.setOffices(null);
+
+            employers.add(new EmployerWithCountVacancy(employer, count));
+        }
+
+        return ResponseEntity.ok().body(employers);
+    }
+
+    @PostMapping("/filter/vacancies/count")
+    public ResponseEntity<?> getCountFilterVacancies(@RequestBody VacancyFilter filter) {
+
+        return ResponseEntity.ok().body(vacancyRepository.countFilterVacancies(filter.getKey(),
+                filter.getGlobal()));
+    }
+
+    @PostMapping("/filter/vacancies")
+    public ResponseEntity<?> getFilterVacancies(@RequestBody VacancyFilter filter) {
+
+        System.out.println(filter.toString());
+
+        List<VacancyMessage> result = new ArrayList<>();
+
+        vacancyRepository.findAllFilterVacancies(filter.getKey(),
+                filter.getGlobal(),
+                PageRequest.of(filter.getInfo().getPageIndex(), filter.getInfo().getPageSize()))
+                .forEach( v -> result.add(new VacancyMessage(v, v.getEmployer().getId(), v.getEmployer().getName())));
+
+        return ResponseEntity.ok().body(result);
+    }
+
     @PostMapping("/employers")
     public ResponseEntity<?> getListEmployers(@RequestBody PageInfo pageInfo) {
 
         List<EmployerWithCountVacancy> employers = new ArrayList<>();
         int count;
 
-        for(Employer employer : employerRepository.findByUnblockedUser(
-                PageRequest.of(pageInfo.getPageIndex(), pageInfo.getPageSize()))){
+        for (Employer employer : employerRepository.findByUnblockedUser(
+                PageRequest.of(pageInfo.getPageIndex(), pageInfo.getPageSize()))) {
 
             count = 0;
             for (Vacancy vacancy : employer.getVacancies()) if ("Активна".equals(vacancy.getStatus())) count++;
@@ -181,5 +242,40 @@ public class ContentRestAPIs {
 
         return ResponseEntity.ok().body(employers);
     }
+
+    @GetMapping("/event/{id}")
+    public ResponseEntity<?> getEventById(@PathVariable Long id){
+
+        Event event = eventRepository.findById(id).orElseThrow(() ->
+          new UsernameNotFoundException("Event not found with your id!"));
+
+        EventMessage result  = new EventMessage(event, event.getEmployer().getId(), event.getEmployer().getName());
+
+        return ResponseEntity.ok().body(result);
+    }
+
+    @GetMapping("/events/nearest")
+    public ResponseEntity<?> getNearestEvents(){
+
+        List<Event> events = eventRepository.findTop5ByTimeAfterOrderByTime(LocalDateTime.now());
+        List<EventMessage> result = new ArrayList<>();
+
+        if(!events.isEmpty()) {
+            events.forEach(event -> {
+
+                Employer employer = new Employer();
+                employer.setId(event.getEmployer().getId());
+                employer.setName(event.getEmployer().getName());
+
+                result.add(new EventMessage(event, event.getEmployer().getId(), event.getEmployer().getName()));
+
+            });
+        }
+
+        return ResponseEntity.ok().body(result);
+    }
+
+
+
 
 }

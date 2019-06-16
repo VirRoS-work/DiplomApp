@@ -3,6 +3,7 @@ package com.virros.diplom.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.persistence.*;
+import javax.validation.constraints.Max;
 import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import java.util.Set;
